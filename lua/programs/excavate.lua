@@ -21,6 +21,7 @@ term.clear()
 term.setCursorPos(1, 1)
 term.setTextColor(colors.white)
 
+console.enableDebugLogging
 console.logInfo('Searching for diamond pickaxe...')
 
 if not turtleExt.equip('minecraft:diamond_pickaxe') then
@@ -206,32 +207,28 @@ for targetZ = 1, dimensions.z, 1 do
 
     if not tracking.moveToZ(transform, targetZ, true) then goto excavationFailed end
 
-    local startY, finishY
+    local startY, finishY, dirY
 
     if transform.position.y == maxY then
-        startY, finishY = maxY, minY
+        startY, finishY, dirY = maxY, minY, -3
     else
-        startY, finishY = minY, maxY
+        startY, finishY, dirY = minY, maxY, 3
     end
 
-    for targetY = startY, finishY, 3 do
+    for targetY = startY, finishY, dirY do
         ::unchunkedLoop::
 
         if not tracking.moveToY(transform, targetY, true) then goto excavationFailed end
 
-        local startX, finishX
+        local startX, finishX, dirX
 
         if transform.position.x == maxX then
-            startX, finishX = maxX, minX
+            startX, finishX, dirX = maxX, minX, -1
         else
-            startX, finishX = minX, maxX
+            startX, finishX, dirX = minX, maxX, 1
         end
 
-        for targetX = startX, finishX, 1 do
-            console.logDebug(('Digging %d, %d, %d'):format(targetX, targetY, targetZ))
-            console.logDebug(('Current pos: %s'):format(transform.position))
-            console.logDebug(('Currnet rot: %s'):format(transform.rotation))
-
+        for targetX = startX, finishX, dirX do
             if not tracking.moveToX(transform, targetX, true) then goto excavationFailed end
 
             while targetY ~= dimensions.y - 1 and turtle.detectUp() and turtle.digUp() do end
