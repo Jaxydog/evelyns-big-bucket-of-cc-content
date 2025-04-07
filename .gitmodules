@@ -1,0 +1,3 @@
+[submodule ".lua-addons/cc-tweaked-documentation"]
+	path = .lua-addons/cc-tweaked-documentation
+	url = https://gitlab.com/carsakiller/cc-tweaked-documentation
