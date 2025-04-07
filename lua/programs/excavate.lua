@@ -115,13 +115,70 @@ if console.readBoolean('Place additional storage?') then
     console.logInfo(('Attached storage with %d slots'):format(inventory.size))
 end
 
-local chunksY = math.floor(dimensions.y / 3)
-local blocksY = dimensions.y % 3
-
 local maxX = math.floor((dimensions.x - 1) / 2)
 local minX = -math.ceil((dimensions.x - 1) / 2)
-local maxY = dimensions.y - (blocksY == 0 and 2 or blocksY)
+
+local unchunkedY = dimensions.y % 3
+local maxY = dimensions.y - (unchunkedY == 0 and 2 or unchunkedY)
 local minY = math.min(maxY, 1)
+
+local fuelLevel = turtle.getFuelLevel()
+local fuelLimit = turtle.getFuelLimit()
+local fuelEstimate = math.ceil(1.1 *
+    (
+        1 + math.ceil((dimensions.x - 1) / 2) +            --Initial positioning
+        (dimensions.z * 2) +                               --Z traversal
+        math.ceil(dimensions.y * (2 / 3)) +                --Y chunked traversal
+        math.min(unchunkedY, 1) +                          --Y unchunked traversal
+        (dimensions.x * math.ceil(dimensions * (2 / 3))) + --X chunked traversal
+        (dimensions.x * math.min(unchunkedY, 1)) +         --X unchunked traversal
+        -minX +                                            --X return
+        maxY +                                             --Y return
+        (dimensions.z - 1)                                 --Z return
+    )
+)
+
+print()
+
+console.logInfo(('Estimated fuel cost: %d / %d'):format(fuelEstimate, fuelLimit))
+console.logInfo(('Current fuel level: %d'):format(fuelLevel))
+
+if fuelEstimate > fuelLimit then
+    console.logError('Excavated area is too big')
+
+    goto excavationFailed
+elseif fuelLevel < fuelEstimate then
+    ::retryRefuel::
+
+    print()
+
+    console.logInfo('Attempting refuel...')
+
+    turtleExt.viewSlots(function(slot, count)
+        if fuelLimit >= fuelEstimate or count == 0 then return end
+
+        turtle.select(slot)
+        turtle.refuel()
+    end)
+
+    fuelLevel = turtle.getFuelLevel()
+
+    print()
+
+    if fuelLevel >= fuelEstimate then
+        console.logInfo(('Estimated fuel cost: %d / %d'):format(fuelEstimate, fuelLimit))
+        console.logInfo(('Current fuel level: %d'):format(fuelLimit))
+    else
+        console.logError(('Estimated fuel cost: %d / %d'):format(fuelEstimate, fuelLimit))
+        console.logError(('Current fuel level: %d'):format(fuelLimit))
+
+        if console.readBoolean('Retry?') then
+            goto retryRefuel
+        else
+            goto excavationFailed
+        end
+    end
+end
 
 console.logInfo('Starting excavation!')
 
