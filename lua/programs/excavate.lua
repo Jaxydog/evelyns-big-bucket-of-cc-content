@@ -205,6 +205,7 @@ elseif fuelLevel < fuelEstimate then
     end
 end
 
+print()
 console.logInfo('Starting excavation!')
 
 for targetZ = 1, dimensions.z, 1 do
@@ -254,8 +255,11 @@ for targetZ = 1, dimensions.z, 1 do
                     turtleExt.viewSlots(function(slot, count)
                         if count == 0 then return end
 
-                        inventory.pushItems('top', slot)
+                        turtle.select(slot)
+                        turtle.dropUp()
                     end)
+
+                    turtle.select(1)
 
                     if not turtleExt.findSlot(function(_, count) return count == 0 end) then
                         console.logWarning('Storage block full!')
