@@ -4,13 +4,20 @@ A collection of Lua libraries and programs for usage with CC: Tweaked.
 
 ## Usage
 
-To use a program within this library,
-run the following commands in your ComputerCraft terminal:
+### Programs
+
+To use a program within this repository,
+run the following command in your ComputerCraft terminal,
+where <name> is the name of the program:
 
 ```
-wget run https://raw.githubusercontent.com/Jaxydog/evelyns-big-bucket-of-cc-content/refs/heads/main/lua/install.lua
 wget run https://raw.githubusercontent.com/Jaxydog/evelyns-big-bucket-of-cc-content/refs/heads/main/lua/programs/<name>.lua
 ```
+
+Note that you first need to follow the instructions below
+for adding external-require to your `startup.lua` file.
+
+### Libraries
 
 The simplest way to use this repository's libraries
 is to add the following to the top of your `startup.lua` file:
