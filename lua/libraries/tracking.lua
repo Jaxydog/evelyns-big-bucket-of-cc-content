@@ -259,7 +259,7 @@ function module.moveToX(transform, x, breakBlocks)
     elseif difference > 0 then
         module.turnTowardsRight(transform)
 
-        return module.moveFront(transform, -difference, breakBlocks)
+        return module.moveFront(transform, difference, breakBlocks)
     end
 
     return true
@@ -301,7 +301,7 @@ function module.moveToZ(transform, z, breakBlocks)
     elseif difference > 0 then
         module.turnTowardsFront(transform)
 
-        return module.moveFront(transform, -difference, breakBlocks)
+        return module.moveFront(transform, difference, breakBlocks)
     end
 
     return true

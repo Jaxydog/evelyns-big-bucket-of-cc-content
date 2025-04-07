@@ -33,8 +33,6 @@ local dimensions = vector.new(0, 0, 0)
 
 ::retryReadX::
 
-print()
-
 dimensions.x = console.readInteger('Area width')
 
 if dimensions.x <= 0 then
@@ -44,8 +42,6 @@ if dimensions.x <= 0 then
 end
 
 ::retryReadY::
-
-print()
 
 dimensions.y = console.readInteger('Area height')
 
@@ -57,8 +53,6 @@ end
 
 ::retryReadZ::
 
-print()
-
 dimensions.z = console.readInteger('Area depth')
 
 if dimensions.z <= 0 then
@@ -67,12 +61,24 @@ if dimensions.z <= 0 then
     goto retryReadZ
 end
 
-if console.readBoolean('Place additional storage?') then
+if console.readBoolean('Use additional storage?') then
     turtle.select(1)
 
     local size = 0
 
     ::retryPlaceStorage::
+
+    do
+        local inventory = peripheral.find('inventory', function(name)
+            return name == 'top'
+        end)
+
+        if inventory then
+            size = inventory.size()
+
+            goto placeStorageSucceeded
+        end
+    end
 
     if turtle.detectUp() then
         console.logError('Top block is obstructed')
@@ -137,15 +143,15 @@ local fuelLevel = turtle.getFuelLevel()
 local fuelLimit = turtle.getFuelLimit()
 local fuelEstimate = math.ceil(1.1 *
     (
-        1 + math.ceil((dimensions.x - 1) / 2) +            --Initial positioning
-        (dimensions.z * 2) +                               --Z traversal
-        math.ceil(dimensions.y * (2 / 3)) +                --Y chunked traversal
-        math.min(unchunkedY, 1) +                          --Y unchunked traversal
-        (dimensions.x * math.ceil(dimensions * (2 / 3))) + --X chunked traversal
-        (dimensions.x * math.min(unchunkedY, 1)) +         --X unchunked traversal
-        -minX +                                            --X return
-        maxY +                                             --Y return
-        (dimensions.z - 1)                                 --Z return
+        1 + math.ceil((dimensions.x - 1) / 2) +              --Initial positioning
+        (dimensions.z * 2) +                                 --Z traversal
+        math.ceil(dimensions.y * (2 / 3)) +                  --Y chunked traversal
+        math.min(unchunkedY, 1) +                            --Y unchunked traversal
+        (dimensions.x * math.ceil(dimensions.y * (2 / 3))) + --X chunked traversal
+        (dimensions.x * math.min(unchunkedY, 1)) +           --X unchunked traversal
+        -minX +                                              --X return
+        maxY +                                               --Y return
+        (dimensions.z - 1)                                   --Z return
     )
 )
 
@@ -159,14 +165,14 @@ if fuelEstimate > fuelLimit then
 
     goto excavationFailed
 elseif fuelLevel < fuelEstimate then
-    ::retryRefuel::
-
     print()
+
+    ::retryRefuel::
 
     console.logInfo('Attempting refuel...')
 
     turtleExt.viewSlots(function(slot, count)
-        if fuelLimit >= fuelEstimate or count == 0 then return end
+        if fuelLevel >= fuelEstimate or count == 0 then return end
 
         turtle.select(slot)
         turtle.refuel()
@@ -178,10 +184,10 @@ elseif fuelLevel < fuelEstimate then
 
     if fuelLevel >= fuelEstimate then
         console.logInfo(('Estimated fuel cost: %d / %d'):format(fuelEstimate, fuelLimit))
-        console.logInfo(('Current fuel level: %d'):format(fuelLimit))
+        console.logInfo(('Current fuel level: %d'):format(fuelLevel))
     else
         console.logError(('Estimated fuel cost: %d / %d'):format(fuelEstimate, fuelLimit))
-        console.logError(('Current fuel level: %d'):format(fuelLimit))
+        console.logError(('Current fuel level: %d'):format(fuelLevel))
 
         if console.readBoolean('Retry?') then
             goto retryRefuel
@@ -232,7 +238,7 @@ for targetZ = 1, dimensions.z, 1 do
             while targetY ~= 0 and turtle.detectDown() and turtle.digDown() do end
         end
 
-        if targetY + 3 > finishY then
+        if targetY < finishY and targetY + 3 > finishY then
             targetY = finishY
 
             goto digExtra
