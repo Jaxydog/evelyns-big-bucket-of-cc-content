@@ -5,10 +5,10 @@ end
 local level = turtle.getFuelLevel()
 local limit = turtle.getFuelLimit()
 local percent = (level / limit) * 100
-local prettyPercent = math.floor((percent * 10) + 0.5) / 10
+local prettyPercent = math.floor((percent * 100) + 0.5) / 100
 
 if not term.isColor() then
-    print(('%d / %d (%f%%)'):format(level, limit, prettyPercent))
+    print(('%d / %d (%s%%)'):format(level, limit, prettyPercent))
 
     return
 end
@@ -30,7 +30,7 @@ term.write(('%d'):format(level))
 term.setTextColor(colors.white)
 term.write((' / %d ('):format(limit))
 term.setTextColor(fillColor)
-term.write(('%f'):format(prettyPercent))
+term.write(('%s%%'):format(prettyPercent))
 term.setTextColor(colors.white)
 term.write(')')
 
