@@ -98,10 +98,11 @@ end)
 module.readInteger = createReadFunction(function(s)
     local number = tonumber(s)
 
-    if number ~= nil and math.type(number) == 'integer' then
-        ---@type integer
-        return number
-    end
+    if number == nil then return end
+
+    local integer, decimal = math.modf(number or 0)
+
+    if decimal == 0 then return integer end
 end)
 
 return module
