@@ -21,7 +21,6 @@ term.clear()
 term.setCursorPos(1, 1)
 term.setTextColor(colors.white)
 
-console.enableDebugLogging
 console.logInfo('Searching for diamond pickaxe...')
 
 if not turtleExt.equip('minecraft:diamond_pickaxe') then
