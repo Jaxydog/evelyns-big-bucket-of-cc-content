@@ -65,6 +65,8 @@ end
 
 print()
 
+local hasStorage = false
+
 if console.readBoolean('Use additional storage?') then
     turtle.select(1)
 
@@ -132,6 +134,8 @@ if console.readBoolean('Use additional storage?') then
 
     console.logInfo(('Attached storage with %d slots'):format(size))
 
+    hasStorage = true
+
     ::cancelStorage::
 end
 
@@ -145,7 +149,7 @@ local minY = math.min(maxY, 1)
 
 local fuelLevel = turtle.getFuelLevel()
 local fuelLimit = turtle.getFuelLimit()
-local fuelEstimate = math.ceil(1.1 *
+local fuelEstimate = math.ceil((hasStorage and 2.0 or 1.1) *
     (
         1 + math.ceil((dimensions.x - 1) / 2) +              --Initial positioning
         (dimensions.z * 2) +                                 --Z traversal
@@ -234,6 +238,38 @@ for targetZ = 1, dimensions.z, 1 do
 
             while targetY ~= dimensions.y - 1 and turtle.detectUp() and turtle.digUp() do end
             while targetY ~= 0 and turtle.detectDown() and turtle.digDown() do end
+
+            if hasStorage and not turtleExt.findSlot(function(_, count) return count == 0 end) then
+                console.logInfo('Returning to clean inventory...')
+
+                if not tracking.moveTo(transform, vector.new(0, 0, 0), true) then goto excavationFailed end
+
+                sleep(0.1)
+
+                local inventory = peripheral.find('inventory', function(name)
+                    return name == 'top'
+                end)
+
+                if inventory then
+                    turtleExt.viewSlots(function(slot, count)
+                        if count == 0 then return end
+
+                        inventory.pushItems('top', slot)
+                    end)
+
+                    if not turtleExt.findSlot(function(_, count) return count == 0 end) then
+                        console.logWarning('Storage block full!')
+
+                        hasStorage = false
+                    end
+                else
+                    console.logWarning('Storage block missing!')
+
+                    hasStorage = false
+                end
+
+                if not tracking.moveTo(transform, vector.new(targetX, targetY, targetZ), true) then goto excavationFailed end
+            end
         end
 
         if targetY ~= finishY and targetY + 3 > finishY then
