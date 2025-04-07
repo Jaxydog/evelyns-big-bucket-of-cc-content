@@ -67,12 +67,12 @@ if dimensions.z <= 0 then
     goto retryReadZ
 end
 
-::retryPlaceStorage::
-
-print()
-
 if console.readBoolean('Place additional storage?') then
     turtle.select(1)
+
+    local size = 0
+
+    ::retryPlaceStorage::
 
     if turtle.detectUp() then
         console.logError('Top block is obstructed')
@@ -91,6 +91,8 @@ if console.readBoolean('Place additional storage?') then
     end
 
     do
+        sleep(0.1) --Wait two ticks for the blocks to update.
+
         local inventory = peripheral.find('inventory', function(name)
             return name == 'top'
         end)
@@ -102,6 +104,8 @@ if console.readBoolean('Place additional storage?') then
 
             goto placeStorageFailed
         end
+
+        size = inventory.size()
     end
 
     goto placeStorageSucceeded
@@ -110,11 +114,15 @@ if console.readBoolean('Place additional storage?') then
 
     if console.readBoolean('Retry?') then
         goto retryPlaceStorage
+    else
+        goto cancelStorage
     end
 
     ::placeStorageSucceeded::
 
-    console.logInfo(('Attached storage with %d slots'):format(inventory.size))
+    console.logInfo(('Attached storage with %d slots'):format(size))
+
+    ::cancelStorage::
 end
 
 local transform = tracking.newTransformation()
