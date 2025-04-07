@@ -90,16 +90,18 @@ if console.readBoolean('Place additional storage?') then
         goto placeStorageFailed
     end
 
-    local inventory = peripheral.find('inventory', function(name)
-        return name == 'top'
-    end)
+    do
+        local inventory = peripheral.find('inventory', function(name)
+            return name == 'top'
+        end)
 
-    if not inventory then
-        turtle.digUp()
+        if not inventory then
+            turtle.digUp()
 
-        console.logError('Item in selected slot is not an inventory')
+            console.logError('Item in selected slot is not an inventory')
 
-        goto placeStorageFailed
+            goto placeStorageFailed
+        end
     end
 
     goto placeStorageSucceeded
@@ -115,6 +117,7 @@ if console.readBoolean('Place additional storage?') then
     console.logInfo(('Attached storage with %d slots'):format(inventory.size))
 end
 
+local transform = tracking.newTransformation()
 local maxX = math.floor((dimensions.x - 1) / 2)
 local minX = -math.ceil((dimensions.x - 1) / 2)
 
@@ -181,8 +184,6 @@ elseif fuelLevel < fuelEstimate then
 end
 
 console.logInfo('Starting excavation!')
-
-local transform = tracking.newTransformation()
 
 for targetZ = 1, dimensions.z, 1 do
     console.logInfo(('Digging layer %d / %d'):format(targetZ, dimensions.z))

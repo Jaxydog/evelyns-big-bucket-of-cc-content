@@ -98,7 +98,7 @@ end)
 module.readInteger = createReadFunction(function(s)
     local number = tonumber(s)
 
-    if math.type(number) == 'integer' then
+    if number ~= nil and math.type(number) == 'integer' then
         ---@type integer
         return number
     end
