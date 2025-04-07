@@ -13,15 +13,32 @@ wget run https://raw.githubusercontent.com/Jaxydog/evelyns-big-bucket-of-cc-cont
 ```
 
 The simplest way to use this repository's libraries
-is to add the following to the top of your file.
+is to add the following to the top of your `startup.lua` file:
 
 ```lua
-if not fs.exists('/.evelyns-libraries/external-require.lua') then
-    assert(shell.run(
-        'wget',
-        'https://raw.githubusercontent.com/Jaxydog/evelyns-big-bucket-of-cc-content/refs/heads/main/lua/libraries/external-require.lua',
-        '/.evelyns-libraries/external-require.lua'
-    ), 'Failed to install external-require!')
+if fs.exists('/.evelyns-libraries/external-require.lua') then
+    fs.delete('/.evelyns-libraries/external-require.lua')
+end
+
+assert(shell.run(
+    'wget',
+    'https://raw.githubusercontent.com/Jaxydog/evelyns-big-bucket-of-cc-content/refs/heads/main/lua/libraries/external-require.lua',
+    '/.evelyns-libraries/external-require.lua'
+), 'Failed to install external-require!')
+
+term.clear()
+term.setCursorPos(1, 1)
+```
+
+And add the following to any files that use them:
+
+```lua
+if not externalRequire then 
+    if not package.path:match('/%.evelyns%-libraries') then
+        package.path = package.path .. ';/.evelyns-libraries/?.lua'
+    end
+
+    require('external-require')
 end
 ```
 
