@@ -292,14 +292,14 @@ end
 ---
 ---@return boolean moved Whether the turtle was able to move by the specified amount.
 function module.moveToZ(transform, z, breakBlocks)
-    local difference = z - transform.position.x
+    local difference = z - transform.position.z
 
     if difference < 0 then
-        module.turnTowardsBack(transform)
+        module.turnTowardsFront(transform)
 
         return module.moveFront(transform, -difference, breakBlocks)
     elseif difference > 0 then
-        module.turnTowardsFront(transform)
+        module.turnTowardsBack(transform)
 
         return module.moveFront(transform, difference, breakBlocks)
     end

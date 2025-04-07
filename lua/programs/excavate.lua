@@ -63,6 +63,8 @@ if dimensions.z <= 0 then
     goto retryReadZ
 end
 
+print()
+
 if console.readBoolean('Use additional storage?') then
     turtle.select(1)
 
@@ -204,7 +206,7 @@ console.logInfo('Starting excavation!')
 for targetZ = 1, dimensions.z, 1 do
     console.logInfo(('Digging layer %d / %d'):format(targetZ, dimensions.z))
 
-    if not tracking.moveToZ(transform, targetZ, true) then goto excavationFailed end
+    if not tracking.moveToZ(transform, -targetZ, true) then goto excavationFailed end
 
     local startY, finishY, dirY
 
@@ -252,8 +254,5 @@ console.logError('Excavation failed!')
 
 ::recenter::
 
-if not tracking.moveTo(transform, vector.new(0, 0, 0), true) then
-    goto excavationFailed
-end
-
+assert(tracking.moveTo(transform, vector.new(0, 0, 0), true))
 tracking.turnTowardsFront(transform)

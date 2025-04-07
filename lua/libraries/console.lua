@@ -70,8 +70,6 @@ local function createReadFunction(validation, createPrompt)
             term.setTextColor(colors.white)
         end
 
-        print()
-
         return value
     end
 end
