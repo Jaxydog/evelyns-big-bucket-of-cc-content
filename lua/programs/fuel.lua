@@ -1,3 +1,7 @@
+if not turtle then
+    error('This program must be run on a turtle!')
+end
+
 local level = turtle.getFuelLevel()
 local limit = turtle.getFuelLimit()
 local percent = (level / limit) * 100
