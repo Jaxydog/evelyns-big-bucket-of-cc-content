@@ -29,6 +29,8 @@ if not turtleExt.equip('minecraft:diamond_pickaxe') then
     return 1
 end
 
+print()
+
 local dimensions = vector.new(0, 0, 0)
 
 ::retryReadX::
@@ -202,9 +204,7 @@ console.logInfo('Starting excavation!')
 for targetZ = 1, dimensions.z, 1 do
     console.logInfo(('Digging layer %d / %d'):format(targetZ, dimensions.z))
 
-    if not tracking.moveToZ(transform, targetZ, true) then
-        goto excavationFailed
-    end
+    if not tracking.moveToZ(transform, targetZ, true) then goto excavationFailed end
 
     local startY, finishY
 
@@ -215,11 +215,9 @@ for targetZ = 1, dimensions.z, 1 do
     end
 
     for targetY = startY, finishY, 3 do
-        ::digExtra::
+        ::unchunkedLoop::
 
-        if not tracking.moveToY(transform, targetY, true) then
-            goto excavationFailed
-        end
+        if not tracking.moveToY(transform, targetY, true) then goto excavationFailed end
 
         local startX, finishX
 
@@ -230,23 +228,25 @@ for targetZ = 1, dimensions.z, 1 do
         end
 
         for targetX = startX, finishX, 1 do
-            if not tracking.moveToX(transform, targetX, true) then
-                goto excavationFailed
-            end
+            console.logDebug(('Digging %d, %d, %d'):format(targetX, targetY, targetZ))
+            console.logDebug(('Current pos: %s'):format(transform.position))
+            console.logDebug(('Currnet rot: %s'):format(transform.rotation))
+
+            if not tracking.moveToX(transform, targetX, true) then goto excavationFailed end
 
             while targetY ~= dimensions.y - 1 and turtle.detectUp() and turtle.digUp() do end
             while targetY ~= 0 and turtle.detectDown() and turtle.digDown() do end
         end
 
-        if targetY < finishY and targetY + 3 > finishY then
+        if targetY ~= finishY and targetY + 3 > finishY then
             targetY = finishY
 
-            goto digExtra
+            goto unchunkedLoop
         end
     end
 end
 
-console.logError('Excavation succeeded!')
+console.logInfo('Excavation succeeded!')
 
 goto recenter
 
