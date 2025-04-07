@@ -1,3 +1,5 @@
+if not turtle then error('This library must be used on a turtle!') end
+
 ---@alias evelyn.Rotation
 ---| 'front'
 ---| 'left'
