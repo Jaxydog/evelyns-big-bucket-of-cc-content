@@ -4,31 +4,25 @@ A collection of Lua libraries and programs for usage with CC: Tweaked.
 
 ## Usage
 
-To use this repository's libraries, add the following to the start of your Lua file.
+To use a program within this library,
+run the following commands in your ComputerCraft terminal:
 
-```lua
---Install the external-require library.
-do
-    --Remove the file if already present.
-    if fs.exists('/.evelyns-libraries/external-require.lua') then
-        fs.delete('/.evelyns-libraries/external-require.lua')
-    end
-
-    --Download the file from its source.
-    assert(shell.run(
-        'wget',
-        'https://raw.githubusercontent.com/Jaxydog/evelyns-big-bucket-of-cc-content/refs/heads/main/lua/libraries/external-require.lua',
-        '/.evelyns-libraries/external-require.lua'
-    ), 'Failed to install external-require!')
-
-    --Add downloaded libraries to the require path.
-    if not package.path:match('/%.evelyns%-libraries') then
-        package.path = package.path .. ';/.evelyns-libraries/?.lua'
-    end
-end
+```
+wget run https://raw.githubusercontent.com/Jaxydog/evelyns-big-bucket-of-cc-content/refs/heads/main/lua/install.lua
+wget run https://raw.githubusercontent.com/Jaxydog/evelyns-big-bucket-of-cc-content/refs/heads/main/lua/programs/<name>.lua
 ```
 
-Then use the global `externalRequire` function to import it directly.
+The simplest way to use this repository's libraries
+is to add the following to the top of your `startup.lua` file.
+Alternatively,
+add the [installation file](./lua/install.lua)'s contents
+to the start of any file that uses these libraries.
+
+```lua
+shell.run('wget', 'run', 'https://raw.githubusercontent.com/Jaxydog/evelyns-big-bucket-of-cc-content/refs/heads/main/lua/install.lua')
+```
+
+You may then use the global `externalRequire` function to import libraries directly.
 
 ```lua
 local console = externalRequire('console')
