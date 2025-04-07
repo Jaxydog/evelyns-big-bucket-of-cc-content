@@ -115,15 +115,17 @@ if console.readBoolean('Place additional storage?') then
     console.logInfo(('Attached storage with %d slots'):format(inventory.size))
 end
 
-local transform = tracking.newTransformation()
+local chunksY = math.floor(dimensions.y / 3)
+local blocksY = dimensions.y % 3
+
+local maxX = math.floor((dimensions.x - 1) / 2)
+local minX = -math.ceil((dimensions.x - 1) / 2)
+local maxY = dimensions.y - (blocksY == 0 and 2 or blocksY)
+local minY = math.min(maxY, 1)
 
 console.logInfo('Starting excavation!')
 
-local lhsX = -math.ceil((dimensions.x - 1) / 2)
-local rhsX = math.floor((dimensions.x - 1) / 2)
-
-local chunksY = math.floor(dimensions.y / 3)
-local blocksY = dimensions.y % 3
+local transform = tracking.newTransformation()
 
 for targetZ = 1, dimensions.z, 1 do
     console.logInfo(('Digging layer %d / %d'):format(targetZ, dimensions.z))
@@ -132,21 +134,16 @@ for targetZ = 1, dimensions.z, 1 do
         goto excavationFailed
     end
 
-    ---@type ccTweaked.turtle.side
-    local side
+    local startY, finishY
 
-    if transform.position.x == rhsX then
-        side = 'right'
+    if transform.position.y == maxY then
+        startY, finishY = maxY, minY
     else
-        if not tracking.moveToX(transform, lhsX, true) then
-            goto excavationFailed
-        end
-
-        side = 'left'
+        startY, finishY = minY, maxY
     end
 
-    for chunkY = 1, chunksY, 1 do
-        local targetY = (chunkY * 3) - 2
+    for targetY = startY, finishY, 3 do
+        ::digExtra::
 
         if not tracking.moveToY(transform, targetY, true) then
             goto excavationFailed
@@ -154,41 +151,25 @@ for targetZ = 1, dimensions.z, 1 do
 
         local startX, finishX
 
-        if side == 'left' then
-            startX, finishX = lhsX, rhsX
+        if transform.position.x == maxX then
+            startX, finishX = maxX, minX
         else
-            startX, finishX = rhsX, lhsX
+            startX, finishX = minX, maxX
         end
 
         for targetX = startX, finishX, 1 do
-            if not tracking.moveToX(transform, -targetX, true) then
+            if not tracking.moveToX(transform, targetX, true) then
                 goto excavationFailed
             end
 
-            while turtle.detectUp() and turtle.digUp() do end
-            while turtle.detectDown() and turtle.digDown() do end
-        end
-    end
-
-    if blocksY > 0 then
-        if not tracking.moveToY(transform, dimensions.y - blocksY - 1, true) then
-            goto excavationFailed
+            while targetY ~= dimensions.y - 1 and turtle.detectUp() and turtle.digUp() do end
+            while targetY ~= 0 and turtle.detectDown() and turtle.digDown() do end
         end
 
-        local startX, finishX
+        if targetY + 3 > finishY then
+            targetY = finishY
 
-        if side == 'left' then
-            startX, finishX = lhsX, rhsX
-        else
-            startX, finishX = rhsX, lhsX
-        end
-
-        for targetX = startX, finishX, 1 do
-            if not tracking.moveToX(transform, -targetX, true) then
-                goto excavationFailed
-            end
-
-            while blocksY == 2 and turtle.detectUp() and turtle.digUp() do end
+            goto digExtra
         end
     end
 end
