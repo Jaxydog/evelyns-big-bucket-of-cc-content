@@ -24,7 +24,7 @@ else
 end
 
 if fs.exists('/.library/external-require.lua') then
-    package.path = package.path .. '/.library/?.lua'
+    package.path = package.path .. ';/.library/?.lua'
 
     ---@type evelyn.ExternalRequireLib
     local externalRequire = require('external-require')
