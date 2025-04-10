@@ -1,12 +1,12 @@
 ---Additional options for importing libraries.
 ---
----@class evelyn.ExternalRequireOptions
+---@class evelyn.externalRequire.options
 ---
 ---@field public forceDownload? boolean Always re-download the library, even if it's unnecessary.
 
 ---Allows code to import libraries from an online repository.
 ---
----@class evelyn.ExternalRequireLib
+---@class evelyn.externalRequire.lib
 local module = {}
 
 ---The base directory that stores all downloaded libraries.
@@ -142,7 +142,7 @@ end
 ---Attempts to require the specified library.
 ---
 ---@param name string The import name. Should be in the format `'repository@library'`.
----@param options? evelyn.ExternalRequireOptions Additional import options.
+---@param options? evelyn.externalRequire.options Additional import options.
 ---
 ---@return unknown module The imported library.
 function module.require(name, options)
