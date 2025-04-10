@@ -1,4 +1,5 @@
 ---A log level.
+---
 ---@alias evelyn.logging.level
 ---| 'debug' Debug logging.
 ---| 'info' Informational logging.
@@ -6,6 +7,7 @@
 ---| 'error' Error logging.
 
 ---A color choice.
+---
 ---@alias evelyn.logging.colorChoice
 ---| 'auto' Automatically enable color if it's available.
 ---| 'always' Always enable color, even if it's not available.
