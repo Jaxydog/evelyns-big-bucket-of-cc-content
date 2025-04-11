@@ -43,8 +43,8 @@ console.logInfo('Library downloaded~!')
 
 ## Clearing downloads
 
-To delete any downloaded libraries,
-just delete the `/.evelyns-libraries/` directory.
+To delete downloaded libraries,
+just delete the `/.library/` directory.
 
 Make sure to reboot your terminal so that
 `external-require` re-downloads itself and becomes usable again.
