@@ -103,15 +103,15 @@ end
 ---
 ---The return value will only ever be `nil` if the `maxAttempts` field is set.
 module.readBoolean = module.createReadFunction(function(prompt, default)
-    if default and default:match('^[nN]|no|false$') then
+    if default and default:match('^[nN]$') then
         return ('%s [y/N]: '):format(prompt)
     else
         return ('%s [Y/n]: '):format(prompt)
     end
 end, function(input)
-    if input:match('^[yY]|yes|true$') then
+    if input:match('^[yY]$') then
         return true, true, nil
-    elseif input:match('^[nN]|no|false$') then
+    elseif input:match('^[nN]$') then
         return true, false, nil
     end
 
