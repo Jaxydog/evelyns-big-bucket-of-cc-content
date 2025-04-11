@@ -1,76 +1,52 @@
-if not externalRequire then
-    if not package.path:match('/%.evelyns%-libraries') then
-        package.path = package.path .. ';/.evelyns-libraries/?.lua'
-    end
-
-    require('external-require')
+if not package.path:match('/%.library/%?%.lua') then
+    package.path = package.path .. ';/.libraries/?.lua'
 end
+
+---@type evelyn.externalRequire.lib
+local externalRequire = require('external-require')
 
 print('Loading program...')
 
 term.setTextColor(colors.black)
 
----@type evelyn.ConsoleLib
-local console = externalRequire('console')
----@type evelyn.TrackingLib
-local tracking = externalRequire('tracking')
----@type evelyn.TurtleLib
-local turtleExt = externalRequire('turtle-extensions')
+---@type evelyn.logging.lib
+local logging = externalRequire.require('evelyns@logging')
+---@type evelyn.query.lib
+local query = externalRequire.require('evelyns@query')
+---@type evelyn.turtle.positionTracker.lib
+local positionTracker = externalRequire.require('evelyns-turtle@position-tracker')
+---@type evelyn.turtle.inventoryHelper.lib
+local inventoryHelper = externalRequire.require('evelyns-turtle@inventory-helper')
 
 term.clear()
 term.setCursorPos(1, 1)
 term.setTextColor(colors.white)
 
-console.logInfo('Searching for diamond pickaxe...')
+do
+    local success, reason = inventoryHelper:equipByName('minecraft:diamond_pickaxe')
 
-if not turtleExt.equip('minecraft:diamond_pickaxe') then
-    console.logError('Missing diamond pickaxe')
+    if not success then
+        logging:logError('Missing diamond pickaxe: %s', reason)
 
-    return 1
+        return 1
+    end
 end
 
 print()
 
-local dimensions = vector.new(0, 0, 0)
-
-::retryReadX::
-
-dimensions.x = console.readInteger('Area width')
-
-if dimensions.x <= 0 then
-    console.logError('Size must be greater than 0')
-
-    goto retryReadX
-end
-
-::retryReadY::
-
-dimensions.y = console.readInteger('Area height')
-
-if dimensions.y <= 0 then
-    console.logError('Size must be greater than 0')
-
-    goto retryReadY
-end
-
-::retryReadZ::
-
-dimensions.z = console.readInteger('Area depth')
-
-if dimensions.z <= 0 then
-    console.logError('Size must be greater than 0')
-
-    goto retryReadZ
-end
+local dimensions = {
+    x = query.readIntegerInRange('Area width', 0, 256),
+    y = query.readIntegerInRange('Area height', 0, 256),
+    z = query.readIntegerInRange('Area depth', 0, 256),
+}
 
 print()
 
 local hasStorage = false
 
-if console.readBoolean('Use additional storage?') then
-    turtle.select(1)
-
-    local size = 0
+if query.readBoolean('Use additional storage?', { default = 'n' }) then
+    local inventorySlots = 0
+    local biggest = { slot = nil, size = 0 }
 
     ::retryPlaceStorage::
 
@@ -80,30 +56,27 @@ if console.readBoolean('Use additional storage?') then
         end)
 
         if inventory then
-            size = inventory.size()
+            inventorySlots = inventory.size()
 
             goto placeStorageSucceeded
         end
     end
 
     if turtle.detectUp() then
-        console.logError('Top block is obstructed')
-
-        goto placeStorageFailed
-    end
-    if not turtle.getItemDetail() then
-        console.logInfo('No item in selected slot')
-
-        goto placeStorageFailed
-    end
-    if not turtle.placeUp() then
-        console.logError('Cannot place item in selected slot')
+        logging:logError('Top block is obstructed')
 
         goto placeStorageFailed
     end
 
-    do
-        sleep(0.1) --Wait two ticks for the blocks to update.
+    biggest = inventoryHelper:foldSlot(biggest, function(value, slot, countResolver)
+        if type(slot) == 'string' then return value end
+        if countResolver() == 0 then return value end
+
+        turtle.select(slot)
+
+        if not turtle.placeUp() then return value end
+
+        sleep(0.1)
 
         local inventory = peripheral.find('inventory', function(name)
             return name == 'top'
@@ -112,19 +85,34 @@ if console.readBoolean('Use additional storage?') then
         if not inventory then
             turtle.digUp()
 
-            console.logError('Item in selected slot is not an inventory')
-
-            goto placeStorageFailed
+            return value
         end
 
-        size = inventory.size()
+        local size = inventory.size()
+
+        if value.size < size then
+            value.slot = slot
+            value.size = size
+        end
+
+        turtle.digUp()
+
+        return value
+    end)
+
+    if biggest.slot == nil then
+        logging:logInfo('No available storage item')
+
+        goto placeStorageFailed
     end
+
+    inventorySlots = biggest.size
 
     goto placeStorageSucceeded
 
     ::placeStorageFailed::
 
-    if console.readBoolean('Retry?') then
+    if query.readBoolean('Retry?') then
         goto retryPlaceStorage
     else
         goto cancelStorage
@@ -132,14 +120,14 @@ if console.readBoolean('Use additional storage?') then
 
     ::placeStorageSucceeded::
 
-    console.logInfo(('Attached storage with %d slots'):format(size))
+    logging:logInfo('Attached storage with %d slots', inventorySlots)
 
     hasStorage = true
 
     ::cancelStorage::
 end
 
-local transform = tracking.newTransformation()
+local transform = positionTracker:createTransform({ skipGps = true })
 local maxX = math.floor((dimensions.x - 1) / 2)
 local minX = -math.ceil((dimensions.x - 1) / 2)
 
@@ -165,11 +153,11 @@ local fuelEstimate = math.ceil((hasStorage and 2.0 or 1.1) *
 
 print()
 
-console.logInfo(('Estimated fuel cost: %d / %d'):format(fuelEstimate, fuelLimit))
-console.logInfo(('Current fuel level: %d'):format(fuelLevel))
+logging:logInfo('Estimated fuel cost: %d / %d', fuelEstimate, fuelLimit)
+logging:logInfo('Current fuel level: %d', fuelLevel)
 
 if fuelEstimate > fuelLimit then
-    console.logError('Excavated area is too big')
+    logging:logError('Excavated area is too big')
 
     goto excavationFailed
 elseif fuelLevel < fuelEstimate then
@@ -177,41 +165,33 @@ elseif fuelLevel < fuelEstimate then
 
     ::retryRefuel::
 
-    console.logInfo('Attempting refuel...')
+    logging:logInfo('Attempting refuel...')
 
-    turtleExt.viewSlots(function(slot, count)
-        if fuelLevel >= fuelEstimate or count == 0 then return end
-
-        turtle.select(slot)
-        turtle.refuel()
-    end)
-
+    inventoryHelper:refuelFromInventory()
     fuelLevel = turtle.getFuelLevel()
 
     print()
 
     if fuelLevel >= fuelEstimate then
-        console.logInfo(('Estimated fuel cost: %d / %d'):format(fuelEstimate, fuelLimit))
-        console.logInfo(('Current fuel level: %d'):format(fuelLevel))
+        logging:logInfo('Estimated fuel cost: %d / %d', fuelEstimate, fuelLimit)
+        logging:logInfo('Current fuel level: %d', fuelLevel)
     else
-        console.logError(('Estimated fuel cost: %d / %d'):format(fuelEstimate, fuelLimit))
-        console.logError(('Current fuel level: %d'):format(fuelLevel))
+        logging:logError('Estimated fuel cost: %d / %d', fuelEstimate, fuelLimit)
+        logging:logError('Current fuel level: %d', fuelLevel)
 
-        if console.readBoolean('Retry?') then
-            goto retryRefuel
-        else
-            goto excavationFailed
-        end
+        if query.readBoolean('Retry?') then goto retryRefuel else goto excavationFailed end
     end
 end
 
 print()
-console.logInfo('Starting excavation!')
+logging:logInfo('Starting excavation!')
 
 for targetZ = 1, dimensions.z, 1 do
-    console.logInfo(('Digging layer %d / %d'):format(targetZ, dimensions.z))
+    logging:logInfo('Digging layer %d / %d', targetZ, dimensions.z)
 
-    if not tracking.moveToZ(transform, -targetZ, true) then goto excavationFailed end
+    if not positionTracker.move:z(transform, -targetZ, { breakBlocks = true }) then
+        goto excavationFailed
+    end
 
     local startY, finishY, dirY
 
@@ -224,7 +204,9 @@ for targetZ = 1, dimensions.z, 1 do
     for targetY = startY, finishY, dirY do
         ::unchunkedLoop::
 
-        if not tracking.moveToY(transform, targetY, true) then goto excavationFailed end
+        if not positionTracker.move:y(transform, targetY, { breakBlocks = true }) then
+            goto excavationFailed
+        end
 
         local startX, finishX, dirX
 
@@ -235,15 +217,22 @@ for targetZ = 1, dimensions.z, 1 do
         end
 
         for targetX = startX, finishX, dirX do
-            if not tracking.moveToX(transform, targetX, true) then goto excavationFailed end
+            if not positionTracker.move:x(transform, targetX, { breakBlocks = true }) then
+                goto excavationFailed
+            end
 
             while targetY ~= dimensions.y - 1 and turtle.detectUp() and turtle.digUp() do end
             while targetY ~= 0 and turtle.detectDown() and turtle.digDown() do end
 
-            if hasStorage and not turtleExt.findSlot(function(_, count) return count == 0 end) then
-                console.logInfo('Returning to clean inventory...')
+            if hasStorage and not inventoryHelper:findSlot(function(_, countResolver)
+                    return countResolver() == 0
+                end)
+            then
+                logging:logInfo('Returning to clean inventory...')
 
-                if not tracking.moveTo(transform, vector.new(0, 0, 0), true) then goto excavationFailed end
+                if not positionTracker.move:to(transform, 0, 0, 0, { breakBlocks = true }) then
+                    goto excavationFailed
+                end
 
                 sleep(0.1)
 
@@ -252,8 +241,8 @@ for targetZ = 1, dimensions.z, 1 do
                 end)
 
                 if inventory then
-                    turtleExt.viewSlots(function(slot, count)
-                        if count == 0 then return end
+                    inventoryHelper:forEachSlot(function(slot, countResolver)
+                        if type(slot) == 'string' or countResolver() == 0 then return end
 
                         turtle.select(slot)
                         turtle.dropUp()
@@ -261,18 +250,20 @@ for targetZ = 1, dimensions.z, 1 do
 
                     turtle.select(1)
 
-                    if not turtleExt.findSlot(function(_, count) return count == 0 end) then
-                        console.logWarning('Storage block full!')
+                    if not inventoryHelper:findSlot(function(_, countResolver) return countResolver() == 0 end) then
+                        logging:logWarn('Storage block full!')
 
                         hasStorage = false
                     end
                 else
-                    console.logWarning('Storage block missing!')
+                    logging:logWarn('Storage block missing!')
 
                     hasStorage = false
                 end
 
-                if not tracking.moveTo(transform, vector.new(targetX, targetY, targetZ), true) then goto excavationFailed end
+                if not positionTracker.move:to(transform, targetX, targetY, targetZ, { breakBlocks = true }) then
+                    goto excavationFailed
+                end
             end
         end
 
@@ -284,15 +275,15 @@ for targetZ = 1, dimensions.z, 1 do
     end
 end
 
-console.logInfo('Excavation succeeded!')
+logging:logInfo('Excavation succeeded!')
 
 goto recenter
 
 ::excavationFailed::
 
-console.logError('Excavation failed!')
+logging:logError('Excavation failed!')
 
 ::recenter::
 
-assert(tracking.moveTo(transform, vector.new(0, 0, 0), true))
-tracking.turnTowardsFront(transform)
+assert(positionTracker.move:to(transform, 0, 0, 0, { breakBlocks = true }))
+positionTracker.turn:north(transform)
