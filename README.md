@@ -8,7 +8,7 @@ A collection of Lua libraries and programs for usage with CC: Tweaked.
 
 To use a program within this repository,
 run the following command in your ComputerCraft terminal,
-where <name> is the name of the program:
+where \<name> is the name of the program:
 
 ```
 wget run https://raw.githubusercontent.com/Jaxydog/evelyns-big-bucket-of-cc-content/refs/heads/main/lua/programs/<name>.lua
