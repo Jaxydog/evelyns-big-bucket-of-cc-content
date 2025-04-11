@@ -391,9 +391,9 @@ function module.move:forward(transform, options)
             transform.position.z = transform.position.z + 1
         elseif transform.direction == 'west' then
             transform.position.x = transform.position.x - 1
+        else
+            error('Invalid direction state')
         end
-
-        error('Invalid direction state')
     end
 
     return true, nil
@@ -448,9 +448,9 @@ function module.move:backward(transform, options)
             transform.position.z = transform.position.z + 1
         elseif transform.direction == 'west' then
             transform.position.x = transform.position.x - 1
+        else
+            error('Invalid direction state')
         end
-
-        error('Invalid direction state')
     end
 
     return true, nil
@@ -708,11 +708,11 @@ function module.move:z(transform, z, options)
     if difference < 0 then
         options.blocks = -difference
 
-        return self:backward(transform, options)
+        return self:forward(transform, options)
     elseif difference > 0 then
         options.blocks = difference
 
-        return self:forward(transform, options)
+        return self:backward(transform, options)
     end
 
     return true, nil
