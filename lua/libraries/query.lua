@@ -54,6 +54,8 @@ function module.createReadFunction(promptBuilder, validator)
             local input = read(options.replaceCharacter, options.history, options.completeFunction, options.default)
             local valid, value, reason = validator(input:match('^%s*(.-)%s*$'))
 
+            term.setTextColor(colors.white)
+
             if valid then return value end
 
             printError(('Invalid value%s'):format(reason and (': %s'):format(reason) or ''))
