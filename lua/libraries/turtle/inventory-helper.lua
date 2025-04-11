@@ -240,10 +240,22 @@ end
 
 ---Attempts to refuel the turtle to full from its inventory.
 ---
+---@param limit? integer The maximum amount of fuel.
+---
 ---@return integer gained The amount of fuel gained.
-function module:refuelFromInventory()
+function module:refuelFromInventory(limit)
     local startingLevel = turtle.getFuelLevel()
-    local limit = turtle.getFuelLimit()
+
+    if limit == nil then
+        local maxLimit = turtle.getFuelLimit()
+
+        if maxLimit == 'unlimited' then
+            limit = math.huge
+        else
+            ---@cast maxLimit integer
+            limit = maxLimit
+        end
+    end
 
     self:findSlot(function(slot, countResolver, _)
         if type(slot) == 'string' then return false end
