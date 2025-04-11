@@ -31,6 +31,8 @@ if fs.exists('/.library/external-require.lua') then
 
     if not externalRequire.hasRepository('evelyns') then
         externalRequire.addRepository('evelyns', repositoryUrl .. '/refs/heads/main/lua/libraries')
+    end
+    if not externalRequire.hasRepository('evelyns-turtle') then
         externalRequire.addRepository('evelyns-turtle', repositoryUrl .. '/refs/heads/main/lua/libraries/turtle')
     end
 end
