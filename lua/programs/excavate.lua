@@ -1,5 +1,5 @@
 if not package.path:match('/%.library/%?%.lua') then
-    package.path = package.path .. ';/.libraries/?.lua'
+    package.path = package.path .. ';/.library/?.lua'
 end
 
 ---@type evelyn.externalRequire.lib

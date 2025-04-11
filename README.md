@@ -27,7 +27,7 @@ Then add the following to any files that use them:
 
 ```lua
 if not package.path:match('/%.library/%?%.lua') then
-    package.path = package.path .. ';/.libraries/?.lua'
+    package.path = package.path .. ';/.library/?.lua'
 end
 
 require('external-require')
