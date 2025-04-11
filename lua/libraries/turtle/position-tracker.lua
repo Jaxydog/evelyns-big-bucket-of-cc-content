@@ -708,11 +708,11 @@ function module.move:z(transform, z, options)
     if difference < 0 then
         options.blocks = -difference
 
-        return self:forward(transform, options)
+        return self:north(transform, options)
     elseif difference > 0 then
         options.blocks = difference
 
-        return self:backward(transform, options)
+        return self:south(transform, options)
     end
 
     return true, nil
