@@ -7,8 +7,6 @@ local externalRequire = require('external-require')
 
 print('Loading program...')
 
-term.setTextColor(colors.black)
-
 ---@type evelyn.logging.lib
 local logging = externalRequire.require('evelyns@logging')
 ---@type evelyn.query.lib
@@ -20,7 +18,6 @@ local inventoryHelper = externalRequire.require('evelyns-turtle@inventory-helper
 
 term.clear()
 term.setCursorPos(1, 1)
-term.setTextColor(colors.white)
 
 do
     local success, reason = inventoryHelper:equipByName('minecraft:diamond_pickaxe')
@@ -31,8 +28,6 @@ do
         return 1
     end
 end
-
-print()
 
 local dimensions = {
     x = query.readIntegerInRange('Area width', 0, 256),
@@ -104,9 +99,17 @@ if query.readBoolean('Use additional storage?', { default = 'n' }) then
         logging:logInfo('No available storage item')
 
         goto placeStorageFailed
-    end
+    else
+        turtle.select(biggest.slot)
 
-    inventorySlots = biggest.size
+        if not turtle.placeUp() then
+            logging:logError('Invalid state')
+
+            goto placeStorageFailed
+        end
+
+        inventorySlots = biggest.size
+    end
 
     goto placeStorageSucceeded
 
@@ -185,6 +188,7 @@ end
 
 print()
 logging:logInfo('Starting excavation!')
+print()
 
 for targetZ = 1, dimensions.z, 1 do
     logging:logInfo('Digging layer %d / %d', targetZ, dimensions.z)
@@ -275,12 +279,14 @@ for targetZ = 1, dimensions.z, 1 do
     end
 end
 
+print()
 logging:logInfo('Excavation succeeded!')
 
 goto recenter
 
 ::excavationFailed::
 
+print()
 logging:logError('Excavation failed!')
 
 ::recenter::
