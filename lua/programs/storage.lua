@@ -475,6 +475,8 @@ while true do
 
     if #parts == 0 then goto continue end
 
+    if parts[1] == 'exit' then break end
+
     if not commands[parts[1]] then
         printError('Unknown command:', parts[1])
 
