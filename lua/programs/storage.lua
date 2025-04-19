@@ -65,14 +65,14 @@ term.setCursorPos(1, 1)
 
 ---A peripheral wrapper for the external inventory.
 local externalInventory = assert(peripheral.find('inventory', function(name)
-    return name == 'bottom'
+    return name:find('barrel', nil, true) ~= nil
 end), 'Missing interface inventory')
 
 ---@cast externalInventory ccTweaked.peripherals.Inventory
 
 ---A list of peripheral wrappers for the internal inventories.
 local internalInventories = { peripheral.find('inventory', function(name)
-    return name ~= 'bottom'
+    return name:find('barrel', nil, true) == nil
 end) }
 
 assert(#internalInventories > 0, 'Missing internal inventories')
