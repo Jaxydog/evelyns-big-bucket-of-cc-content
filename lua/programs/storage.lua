@@ -229,15 +229,26 @@ function inventory:insert(options)
 
         for _, internalInventory in ipairs(internalInventories) do
             local internalInventoryName = peripheral.getName(internalInventory)
-            local moved = externalInventory.pushItems(internalInventoryName, externalSlot)
+            local movedCount = movedCounts[externalStack.name] or 0
 
-            externalStack.count = externalStack.count - moved
+            movedCount = movedCount + externalInventory.pushItems(
+                internalInventoryName,
+                externalSlot,
+                maxCount - movedCount
+            )
 
-            if moved > 0 then cache:clear() end
-            if externalStack.count <= 0 then goto continue end
+            if movedCount > 0 then cache:clear() end
+
+            movedCounts[externalStack.name] = movedCount
+
+            if movedCount >= maxCount then goto continue end
         end
 
-        if externalStack.count > 0 then return false, 'Inventory full' end
+        if externalInventory.getItemDetail(externalSlot) ~= nil
+            and collectionHelper.table:findWith(movedCounts, function(_, value) return value > 0 end)
+        then
+            return false, 'Inventory full'
+        end
 
         ::continue::
     end
