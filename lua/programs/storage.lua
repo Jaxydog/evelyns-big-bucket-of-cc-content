@@ -483,7 +483,7 @@ while true do
             commandParts[#commandParts + 1] = commandPart
         end
 
-        if #commandParts == 1 then
+        if #commandParts == 1 and commandInput:match('%s$') == nil then
             completionCache = {}
 
             local commandNames = collectionHelper.table:keys(commands)
@@ -497,7 +497,7 @@ while true do
             end)
         elseif #commandParts > 1 and commands[commandParts[1]] ~= nil then
             local command = commands[table.remove(commandParts, 1)]
-            local current = table.remove(commandParts, #commandParts)
+            local current = commandInput:match('%s$') and '' or table.remove(commandParts, #commandParts)
 
             return collectionHelper.array:map(
                 command.complete(completionCache, commandParts, current),
