@@ -354,21 +354,19 @@ commands['insert'] = {
             end), function(_, value) return value.name end)
         elseif #previous == 1 then
             if cacheTable['counts'] == nil then
-                local itemIndex = collectionHelper.array:findWith(cacheTable['items'], function(_, value)
-                    return value.name == previous[1]
+                local count = collectionHelper.array:fold(cacheTable['items'], 0, function(currentCount, _, value)
+                    if value.name == previous[1] then
+                        return currentCount + value.count
+                    else
+                        return currentCount
+                    end
                 end)
 
-                if not itemIndex then
-                    cacheTable['counts'] = {}
-                else
-                    local count = cacheTable['items'][itemIndex].count
-
-                    cacheTable['counts'] = collectionHelper.array:compute(math.floor(math.sqrt(count)), function(index)
-                        return tostring(2 ^ index)
-                    end)
-                    if not collectionHelper.array:find(cacheTable['counts'], tostring(count)) then
-                        cacheTable['counts'][#cacheTable['counts'] + 1] = tostring(count)
-                    end
+                cacheTable['counts'] = collectionHelper.array:compute(math.floor(math.sqrt(count)), function(index)
+                    return tostring(2 ^ index)
+                end)
+                if not collectionHelper.array:find(cacheTable['counts'], tostring(count)) then
+                    cacheTable['counts'][#cacheTable['counts'] + 1] = tostring(count)
                 end
             end
 
