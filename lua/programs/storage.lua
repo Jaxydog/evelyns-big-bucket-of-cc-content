@@ -165,12 +165,12 @@ function inventory:list(options)
 
     if options.include and #options.include > 0 then
         stacks = collectionHelper.array:filter(stacks, function(_, value)
-            return collectionHelper.array:find(options.include, value) ~= nil
+            return collectionHelper.array:find(options.include, value.name) ~= nil
         end)
     end
     if options.exclude and #options.exclude > 0 then
         stacks = collectionHelper.array:filter(stacks, function(_, value)
-            return collectionHelper.array:find(options.exclude, value) == nil
+            return collectionHelper.array:find(options.exclude, value.name) == nil
         end)
     end
 
@@ -195,6 +195,8 @@ function inventory:insert(options)
     options = options or {}
 
     local internalStacks = self:list({ include = options.include, exclude = options.exclude })
+    ---@type table<string, integer>
+    local movedCounts = {}
 
     for externalSlot, externalStack in pairs(externalInventory.list()) do
         if options.include and #options.include > 0 and collectionHelper.array:find(options.include, externalStack.name) == nil then
@@ -204,22 +206,24 @@ function inventory:insert(options)
             goto continue
         end
 
-        for _, internalStack in ipairs(internalStacks) do
-            local maxCount = options.count ~= nil and options.count or internalStack.details().maxCount
+        local maxCount = options.count ~= nil and options.count or externalStack.count
 
+        for _, internalStack in ipairs(internalStacks) do
             for _, internalPosition in ipairs(internalStack.positions) do
-                local items = peripheral.wrap(internalPosition.inventory).getItemDetail(internalPosition.slot).count
-                local moved = externalInventory.pushItems(
+                local movedCount = movedCounts[internalStack.name] or 0
+
+                movedCount = movedCount + externalInventory.pushItems(
                     internalPosition.inventory,
                     externalSlot,
-                    maxCount - items,
+                    maxCount - movedCount,
                     internalPosition.slot
                 )
 
-                externalStack.count = externalStack.count - moved
+                if movedCount > 0 then cache:clear() end
 
-                if moved > 0 then cache:clear() end
-                if externalStack.count <= 0 then goto continue end
+                movedCounts[internalStack.name] = movedCount
+
+                if movedCount >= maxCount then goto continue end
             end
         end
 
