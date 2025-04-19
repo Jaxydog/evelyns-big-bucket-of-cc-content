@@ -354,7 +354,9 @@ commands['insert'] = {
             end), function(_, value) return value.name end)
         elseif #previous == 1 then
             if cacheTable['counts'] == nil then
-                local itemIndex = collectionHelper.array:find(cacheTable['items'], previous[1])
+                local itemIndex = collectionHelper.array:findWith(cacheTable['items'], function(_, value)
+                    return value.name == previous[1]
+                end)
 
                 if not itemIndex then
                     cacheTable['counts'] = {}
@@ -400,7 +402,9 @@ commands['remove'] = {
             end), function(_, value) return value.name end)
         elseif #previous == 1 then
             if cacheTable['counts'] == nil then
-                local itemIndex = collectionHelper.array:find(inventory:list(), previous[1])
+                local itemIndex = collectionHelper.array:findWith(inventory:list(), function(_, value)
+                    return value.name == previous[1]
+                end)
 
                 if not itemIndex then
                     cacheTable['counts'] = {}
