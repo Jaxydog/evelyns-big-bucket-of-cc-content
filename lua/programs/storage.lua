@@ -433,7 +433,7 @@ commands['listv'] = {
 }
 
 while true do
-    write('> ')
+    write('storage > ')
 
     local input = read(nil, nil, function(partial)
         ---@type string[]
@@ -448,13 +448,19 @@ while true do
         elseif #parts == 1 then
             local commandStart = parts[1]
 
-            return arrayFilter(tableKeys(commands), function(value)
+            return arrayMap(arrayFilter(tableKeys(commands), function(value)
                 ---@cast value string Wow, Lua does NOT know how to use generics.
 
                 return value:match('^' .. commandStart)
+            end), function(value)
+                ---@cast value string Wow, Lua does NOT know how to use generics.
+
+                return value:match('^' .. commandStart .. '(.-)$')
             end)
         elseif commands[parts[1]] ~= nil then
-            return arrayDedupe(commands[table.remove(parts, 1)].complete(parts))
+            return arrayMap(arrayDedupe(commands[table.remove(parts, 1)].complete(parts)), function(value)
+                return value:match('^' .. parts[#parts] .. '(.-)$')
+            end)
         end
 
         return {}
