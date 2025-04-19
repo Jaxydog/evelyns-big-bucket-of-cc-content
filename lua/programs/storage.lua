@@ -201,7 +201,7 @@ local function getInternalStacks(options)
                 nbt = item.nbt,
                 positions = {},
                 ---@type evelyn.program.storage.itemDetail
-                detail = assert(inventory.getItemDetail(slot), 'Failed to resolve item data'),
+                details = assert(inventory.getItemDetail(slot), 'Failed to resolve item data'),
             }
 
             local positions = internalStack.positions[inventoryName] or {}
@@ -433,7 +433,7 @@ commands['listv'] = {
 }
 
 while true do
-    write('storage > ')
+    write('storage> ')
 
     local input = read(nil, nil, function(partial)
         ---@type string[]
