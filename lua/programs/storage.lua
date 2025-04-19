@@ -333,7 +333,7 @@ commands['insert'] = {
             end
 
             return collectionHelper.array:filter(cacheTable['items'], function(_, value)
-                return value.name:find(current, nil, true) ~= nil
+                return value.name:find('^' .. current, nil, false) ~= nil
             end)
         elseif #previous == 1 then
             if cacheTable['counts'] == nil then
@@ -352,7 +352,7 @@ commands['insert'] = {
             end
 
             return collectionHelper.array:filter(cacheTable['counts'], function(_, value)
-                return value:find(current, nil, true) ~= nil
+                return value:find('^' .. current, nil, false) ~= nil
             end)
         else
             return {}
@@ -379,7 +379,7 @@ commands['remove'] = {
             end
 
             return collectionHelper.array:filter(inventory:list(), function(_, value)
-                return value.name:find(current, nil, true) ~= nil
+                return value.name:find('^' .. current, nil, false) ~= nil
             end)
         elseif #previous == 1 then
             if cacheTable['counts'] == nil then
@@ -398,7 +398,7 @@ commands['remove'] = {
             end
 
             return collectionHelper.array:filter(cacheTable['counts'], function(_, value)
-                return value:find(current, nil, true) ~= nil
+                return value:find('^' .. current, nil, false) ~= nil
             end)
         else
             return {}
@@ -421,7 +421,7 @@ commands['list'] = {
     complete = function(_, previous, current)
         return collectionHelper.array:filter(inventory:list(), function(_, value)
             return collectionHelper.array:find(previous, value.name) == nil
-                and value.name:find(current, nil, true) ~= nil
+                and value.name:find('^' .. current, nil, false) ~= nil
         end)
     end,
     callback = function(parameters)
@@ -483,11 +483,11 @@ while true do
             local commandNames = collectionHelper.table:keys(commands)
 
             return collectionHelper.array:map(collectionHelper.array:filter(commandNames, function(_, value)
-                return value:find(commandParts[1], nil, true) ~= nil
+                return value:find('^' .. commandParts[1], nil, false) ~= nil
             end), function(_, value)
                 local _, finish = value:find(commandParts[1], nil, true)
 
-                return value:sub((finish or 0) + 1)
+                return value:sub((finish or -1) + 1)
             end)
         elseif #commandParts > 1 and commands[commandParts[1]] ~= nil then
             local command = commands[table.remove(commandParts, 1)]
@@ -498,7 +498,7 @@ while true do
                 function(_, value)
                     local _, finish = value:find(current, nil, true)
 
-                    return value:sub((finish or 0) + 1)
+                    return value:sub((finish or -1) + 1)
                 end
             )
         end
