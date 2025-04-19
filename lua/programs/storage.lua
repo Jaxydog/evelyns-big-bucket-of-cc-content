@@ -366,7 +366,9 @@ commands['insert'] = {
                     cacheTable['counts'] = collectionHelper.array:compute(math.floor(math.sqrt(count)), function(index)
                         return tostring(2 ^ index)
                     end)
-                    cacheTable['counts'][#cacheTable['counts'] + 1] = tostring(count)
+                    if not collectionHelper.array:find(cacheTable['counts'], tostring(count)) then
+                        cacheTable['counts'][#cacheTable['counts'] + 1] = tostring(count)
+                    end
                 end
             end
 
@@ -414,7 +416,9 @@ commands['remove'] = {
                     cacheTable['counts'] = collectionHelper.array:compute(math.floor(math.sqrt(count)), function(index)
                         return tostring(2 ^ index)
                     end)
-                    cacheTable['counts'][#cacheTable['counts'] + 1] = tostring(count)
+                    if not collectionHelper.array:find(cacheTable['counts'], tostring(count)) then
+                        cacheTable['counts'][#cacheTable['counts'] + 1] = tostring(count)
+                    end
                 end
             end
 
