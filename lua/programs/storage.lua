@@ -1,270 +1,239 @@
-term.clear()
-term.setCursorPos(1, 1)
-
-local storageInterface = assert(peripheral.find('inventory', function(name)
-    return name == 'bottom'
-end), 'Missing interface inventory')
-
----@cast storageInterface ccTweaked.peripherals.Inventory
-
-local internalInventories = { peripheral.find('inventory', function(name)
-    return name ~= 'bottom'
-end) }
-
-assert(#internalInventories > 0, 'Missing internal inventories')
-
----Returns a list of all keys in the given table.
+---An in-memory item stack that represents all item stacks of a given item within internal storage.
 ---
----@generic T The type of the table's keys.
----
----@param map table<T, any> The table.
----
----@return T[] keys A list of the table's keys.
-local function tableKeys(map)
-    local keys = {}
-
-    for key, _ in pairs(map) do
-        table.insert(keys, key)
-    end
-
-    return keys
-end
-
----Returns a list of all values in the given table.
----
----@generic T The type of the table's values.
----
----@param map table<any, T> The table.
----
----@return T[] values A list of the table's values.
-local function tableValues(map)
-    local values = {}
-
-    for _, value in pairs(map) do
-        table.insert(values, value)
-    end
-
-    return values
-end
-
----Returns whether the given array contains the given value.
----
----@generic T The type of the values within the array.
----
----@param array T[] The array.
----@param value T The value to test for.
----
----@return boolean contains Whether the array contains the value.
-local function arrayContains(array, value)
-    for _, innerValue in ipairs(array) do
-        if innerValue == value then return true end
-    end
-
-    return false
-end
-
----Returns a copy of the array with elements removed that do not match the given predicate.
----
----@generic T The type of the values within the array.
----
----@param array T[] The array.
----@param predicate fun(value: T): boolean The predicate.
----
----@return T[] array The filtered array.
-local function arrayFilter(array, predicate)
-    local newArray = {}
-
-    for _, value in ipairs(array) do
-        if predicate(value) then table.insert(newArray, value) end
-    end
-
-    return newArray
-end
-
----Returns a copy of the array with duplicate elements removed.
----
----@generic T The type of the values within the array.
----
----@param array T[] The array.
----
----@return T[] array The de-duplicated array.
-local function arrayDedupe(array)
-    local newArray = {}
-
-    for _, value in ipairs(array) do
-        if not arrayContains(newArray, value) then table.insert(newArray, value) end
-    end
-
-    return newArray
-end
-
----Maps the values within an array.
----
----@generic T The type of the values within the array.
----@generic U The new type.
----
----@param array T[] The array.
----@param map fun(value: T): U The mapping function.
----
----@return U[] array The mapped array.
-local function arrayMap(array, map)
-    local newArray = {}
-
-    for index, value in ipairs(array) do
-        newArray[index] = map(value)
-    end
-
-    return newArray
-end
-
----@cast internalInventories ccTweaked.peripherals.Inventory[]
-
----A representation of a stack within the internal inventory.
----
----@class evelyn.program.storage.itemStack
+---@class evelyn.program.storage.item.stack
 ---
 ---@field public name string The item's identifier.
+---@field public nbt string | nil The item's NBT hash.
 ---@field public count integer The total item count.
----@field public nbt string | nil The item's NBT hash, if available.
----@field public positions table<string, evelyn.program.storage.itemPosition[]> The item's positions.
----@field public details evelyn.program.storage.itemDetail The item's details.
+---
+---@field public positions evelyn.program.storage.item.position[] The internal item stack positions.
+---@field public details fun(): evelyn.program.storage.item.details A function that returns the stack's extended details.
 
----An internal item stack's actual storage position within an inventory.
+---An internal item stack position.
 ---
----@class evelyn.program.storage.itemPosition
+---@class evelyn.program.storage.item.position
 ---
----@field public slot integer The item slot.
----@field public count integer The item count.
----@field public maxCount integer The item's maximum count for this stack.
+---@field public inventory string The inventory's name.
+---@field public slot integer The inventory slot.
 
----Detailed information about a specific item in an inventory.
+---Specific details about an in-memory item stack.
 ---
----@class evelyn.program.storage.itemDetail
+---@class evelyn.program.storage.item.details
 ---
 ---@field public name string The item's identifier.
 ---@field public displayName string The item's display name.
 ---
----@field public count integer The item's count.
----@field public maxCount integer The item's maximum count.
+---@field public maxCount integer The item's maximum count for one stack.
 ---
 ---@field public durability? number The item's durability percentage.
 ---@field public damage? integer The item's damage.
 ---@field public maxDamage? integer The item's maximum damage.
 ---
----@field public enchantments? evelyn.program.storage.itemEnchantment[] The item's enchantments.
+---@field public enchantments? evelyn.program.storage.item.enchantment[] The item's enchantments.
 ---
----@field public itemGroups evelyn.program.storage.itemGroup[] A list of the item's groups.
+---@field public itemGroups evelyn.program.storage.item.group[] A list of the item's groups.
 ---@field public tags table<string, boolean> A list of the item's tags.
 
 ---An item enchantment.
 ---
----@class evelyn.program.storage.itemEnchantment
+---@class evelyn.program.storage.item.enchantment
 ---
 ---@field public name string The enchantment's identifier.
 ---@field public level integer The enchantment's level.
 
 ---A creative-mode inventory item group.
 ---
----@class evelyn.program.storage.itemGroup
+---@class evelyn.program.storage.item.group
 ---
 ---@field public id string The group identifier.
 ---@field public displayName string The group name.
 
----Returns a map of item names to their internal inventory stacks.
----
----@param options? { include?: string[], exclude?: string[], inventory?: ccTweaked.peripherals.Inventory }
----
----@return table<string, evelyn.program.storage.itemStack> stacks The internal stacks within storage.
-local function getInternalStacks(options)
-    options = options or {}
+if not package.path:match('/%.library/%?%.lua') then
+    package.path = package.path .. ';/.library/?.lua'
+end
 
-    ---@type table<string, evelyn.program.storage.itemStack>
-    local internalStacks = {}
+---@type evelyn.externalRequire.lib
+local externalRequire = require('external-require')
 
-    for _, inventory in ipairs(arrayFilter(internalInventories, function(value)
-        return not options.inventory or peripheral.getName(value) == peripheral.getName(options.inventory)
-    end)) do
+print('Loading program...')
+
+---@type evelyn.collectionHelper.lib
+local collectionHelper = externalRequire.require('evelyns@collection-helper')
+
+term.clear()
+term.setCursorPos(1, 1)
+
+---A peripheral wrapper for the external inventory.
+local externalInventory = assert(peripheral.find('inventory', function(name)
+    return name == 'bottom'
+end), 'Missing interface inventory')
+
+---@cast externalInventory ccTweaked.peripherals.Inventory
+
+---A list of peripheral wrappers for the internal inventories.
+local internalInventories = { peripheral.find('inventory', function(name)
+    return name ~= 'bottom'
+end) }
+
+assert(#internalInventories > 0, 'Missing internal inventories')
+
+---@cast internalInventories ccTweaked.peripherals.Inventory[]
+
+---Caches the current inventory state to reduce repeated computation.
+local cache = {
+    ---The internal state. This should not be used directly.
+    ---
+    ---@private
+    ---@type evelyn.program.storage.item.stack[]
+    stacks = nil
+}
+
+---Stores the current inventory state within the cache.
+---
+---This is an expensive operation, and should not be called frequently.
+function cache:store()
+    ---@type table<string, evelyn.program.storage.item.stack>
+    local stacks = {}
+
+    for _, inventory in ipairs(internalInventories) do
         local inventoryName = peripheral.getName(inventory)
 
         for slot, item in pairs(inventory.list()) do
-            if arrayContains(options.exclude or {}, item.name) then
-                goto continue
-            end
-            if not arrayContains(options.include or {}, item.name) then
-                goto continue
-            end
-
-            local mapKey = ('%s#%s'):format(item.name, item.nbt or 'nil')
-            local internalStack = internalStacks[mapKey] or {
+            local key = item.nbt and ('%s#%s'):format(item.name, item.nbt) or item.name
+            local detailCache = nil
+            local stack = stacks[key] or {
                 name = item.name,
-                count = 0,
                 nbt = item.nbt,
+                count = 0,
                 positions = {},
-                ---@type evelyn.program.storage.itemDetail
-                details = assert(inventory.getItemDetail(slot), 'Failed to resolve item data'),
+                details = function()
+                    if detailCache == nil then
+                        detailCache = assert(inventory.getItemDetail(slot), 'Missing item details')
+                    end
+
+                    return detailCache
+                end
             }
 
-            local positions = internalStack.positions[inventoryName] or {}
+            stack.positions[#stack.positions + 1] = { inventory = inventoryName, slot = slot }
+            stack.count = stack.count + item.count
 
-            table.insert(positions, { slot = slot, count = item.count, maxCount = internalStack.details.maxCount })
-
-            internalStack.positions[inventoryName] = positions
-            internalStack.count = internalStack.count + item.count
-            internalStack.details.count = internalStack.count
-            internalStack.details.maxCount = internalStack.count
-
-            internalStacks[mapKey] = internalStack
-
-            ::continue::
+            stacks[key] = stack
         end
     end
 
-    return internalInventories
+    self.stacks = collectionHelper.table:values(stacks)
 end
 
----Stores the specified stacks, or all stacks within the interface barrel, within internal storage.
+---Clears the current cache.
+function cache:clear()
+    self.stacks = nil
+end
+
+---Returns the current state of the inventory.
 ---
----@param inputInventory ccTweaked.peripherals.Inventory The peripheral from which to move items.
----@param options? { include?: string[] }
+---If the cache has not been stored, this will store the current state automatically.
 ---
----@return boolean success Whether all possible stacks were stored.
----@return string | nil reason The reason storing failed.
-local function storeStacks(inputInventory, options)
-    local inputInventoryName = peripheral.getName(inputInventory)
-    local outputInventories = arrayFilter(internalInventories, function(value)
-        return peripheral.getName(value) ~= inputInventoryName
-    end)
+---@return evelyn.program.storage.item.stack[] state The inventory state.
+function cache:getOrStore()
+    if self.stacks == nil then
+        self:store()
+    end
 
-    if #outputInventories == 0 then return false, 'No available output inventories' end
+    return self.stacks
+end
 
-    ---@type evelyn.program.storage.itemStack[]
-    local currentContents = tableValues(getInternalStacks((options and options.include) and {
-        include = options.include
-    }))
+---A set of helper functions for managing the internal inventory.
+local inventory = {}
 
-    for inputSlot, externalStack in pairs(inputInventory.list()) do
-        if options and options.include and not arrayContains(options.include, externalStack.name) then
+---Additional filtering options for the list function.
+---
+---@class evelyn.program.storage.fn.list.options
+---
+---@field public include? string[] A list of item identifiers to be included in the list result.
+---@field public exclude? string[] A list of item identifiers to be excluded from the list result.
+
+---Returns a list of the contents within the internal inventory.
+---
+---@param options? evelyn.program.storage.fn.list.options Additional filtering options.
+---
+---@return evelyn.program.storage.item.stack[] stacks The stacks.
+function inventory:list(options)
+    options = options or {}
+
+    local stacks = cache:getOrStore()
+
+    if options.include and #options.include > 0 then
+        stacks = collectionHelper.array:filter(stacks, function(_, value)
+            return collectionHelper.array:find(options.include, value) ~= nil
+        end)
+    end
+    if options.exclude and #options.exclude > 0 then
+        stacks = collectionHelper.array:filter(stacks, function(_, value)
+            return collectionHelper.array:find(options.exclude, value) == nil
+        end)
+    end
+
+    return stacks
+end
+
+---Additional filtering options for the insert function.
+---
+---@class evelyn.program.storage.fn.insert.options
+---
+---@field public count? integer The number of items to insert for each item identifier.
+---@field public include? string[] A list of item identifiers to be included in the transfer.
+---@field public exclude? string[] A list of item identifiers to be excluded from the transfer.
+
+---Inserts items into internal storage.
+---
+---@param options evelyn.program.storage.fn.insert.options Additional filtering options.
+---
+---@return boolean success Whether all items were successfully inserted.
+---@return string | nil reason The reason that insertion failed.
+function inventory:insert(options)
+    options = options or {}
+
+    local internalStacks = self:list({ include = options.include, exclude = options.exclude })
+
+    for externalSlot, externalStack in pairs(externalInventory.list()) do
+        if options.include and #options.include > 0 and collectionHelper.array:find(options.include, externalStack.name) == nil then
+            goto continue
+        end
+        if options.exclude and #options.exclude > 0 and collectionHelper.array:find(options.exclude, externalStack.name) ~= nil then
             goto continue
         end
 
-        for _, internalStack in ipairs(currentContents) do
-            for outputInventoryName, positions in pairs(internalStack.positions) do
-                for _, position in ipairs(positions) do
-                    local transferred = inputInventory.pushItems(
-                        outputInventoryName,
-                        inputSlot,
-                        position.maxCount - position.count,
-                        position.slot
-                    )
+        for _, internalStack in ipairs(internalStacks) do
+            local maxCount = options.count ~= nil and options.count or internalStack.details().maxCount
 
-                    if transferred >= externalStack.count then goto continue end
+            for _, internalPosition in ipairs(internalStack.positions) do
+                local items = peripheral.wrap(internalPosition.inventory).getItemDetail(internalPosition.slot).count
+                local moved = externalInventory.pushItems(
+                    internalPosition.inventory,
+                    externalSlot,
+                    maxCount - items,
+                    internalPosition.slot
+                )
 
-                    externalStack.count = externalStack.count - transferred
-                end
+                externalStack.count = externalStack.count - moved
+
+                if moved > 0 then cache:clear() end
+                if externalStack.count <= 0 then goto continue end
             end
         end
 
-        if externalStack.count > 0 then return false, 'Storage full' end
+        for _, internalInventory in ipairs(internalInventories) do
+            local internalInventoryName = peripheral.getName(internalInventory)
+            local moved = externalInventory.pushItems(internalInventoryName, externalSlot)
+
+            externalStack.count = externalStack.count - moved
+
+            if moved > 0 then cache:clear() end
+            if externalStack.count <= 0 then goto continue end
+        end
+
+        if externalStack.count > 0 then return false, 'Inventory full' end
 
         ::continue::
     end
@@ -272,222 +241,291 @@ local function storeStacks(inputInventory, options)
     return true, nil
 end
 
----Retrieves items from the internal inventory.
+---Additional filtering options for the remove function.
 ---
----@param name string The item's name.
----@param count? integer The number of items to extract.
+---@class evelyn.program.storage.fn.remove.options
 ---
----@return boolean success Whether all items were successfully retrieved.
----@return string | nil reason The reason retrieval failed.
-local function retrieveStack(name, count)
-    local outputInventoryName = peripheral.getName(storageInterface)
+---@field public count? integer The number of items to remove for each item identifier.
+---@field public include? string[] A list of item identifiers to be included in the transfer.
+---@field public exclude? string[] A list of item identifiers to be excluded from the transfer.
 
-    ---@type evelyn.program.storage.itemStack[]
-    local currentContents = tableValues(getInternalStacks({ include = { name } }))
-    local totalTransferred = 0
+---Removes items from internal storage.
+---
+---@param options evelyn.program.storage.fn.remove.options Additional filtering options.
+---
+---@return boolean success Whether all items were successfully inserted.
+---@return string | nil reason The reason that insertion failed.
+function inventory:remove(options)
+    options = options or {}
 
-    for _, internalStack in ipairs(currentContents) do
-        for intputInventoryName, positions in pairs(internalStack.positions) do
-            local inputInventory = peripheral.wrap(intputInventoryName)
+    local internalStacks = self:list({ include = options.include, exclude = options.exclude })
+    ---@type table<string, integer>
+    local movedCounts = {}
 
-            ---@cast inputInventory ccTweaked.peripherals.Inventory
+    for _, internalStack in ipairs(internalStacks) do
+        local maxCount = options.count ~= nil and options.count or internalStack.details().maxCount
 
-            for _, position in ipairs(positions) do
-                totalTransferred = totalTransferred + inputInventory.pushItems(
-                    outputInventoryName,
-                    position.slot,
-                    count - totalTransferred
-                )
+        for _, internalPosition in ipairs(internalStack.positions) do
+            local movedCount = movedCounts[internalStack.name] or 0
 
-                if totalTransferred >= count then return true, nil end
-            end
+            movedCount = movedCount + externalInventory.pullItems(
+                internalPosition.inventory,
+                internalPosition.slot,
+                maxCount - movedCount
+            )
+
+            if movedCount > 0 then cache:clear() end
+
+            movedCounts[internalStack.name] = movedCount
+
+            if movedCount >= maxCount then goto continue end
         end
+
+        if movedCounts[internalStack.name] == nil or movedCounts[internalStack.name] < maxCount then
+            return false, 'Not enough items'
+        end
+
+        ::continue::
     end
 
-    return false, 'Not enough stored items'
+    return true, nil
 end
 
----@type table<string, { complete: (fun(parts: string[]): values: string[]), call: (fun(parts: string[]): success: boolean, reason: string | nil) }>
+---A function that returns a list of completion strings based on the given input.
+---
+---@alias evelyn.program.storage.command.complete fun(cacheTable: table, previous: string[], current: string): completions: string[]
+
+---A function that executes a command.
+---
+---@alias evelyn.program.storage.command.callback fun(parameters: string[]): success: boolean, reason: string | nil
+
+---A list of commands that can be run within the fake shell.
+---
+---@type table<string, { complete: evelyn.program.storage.command.complete, callback: evelyn.program.storage.command.callback }>
 local commands = {}
 
+---The exit command. This is not run directly, as the program exits before invocation.
 commands['exit'] = {
     complete = function() return {} end,
-    call = function() return false, 'Exiting program' end
+    callback = function() return true, nil end,
 }
+---The clear command. Clears the terminal screen.
 commands['clear'] = {
     complete = function() return {} end,
-    call = function()
+    callback = function()
         term.clear()
         term.setCursorPos(1, 1)
 
         return true, nil
-    end
-}
-commands['store'] = {
-    complete = function(parts)
-        local currentPart = table.remove(parts, #parts)
-
-        return arrayFilter(arrayMap(tableValues(storageInterface.list()), function(value)
-            ---@cast value ccTweaked.peripherals.inventory.item Wow, Lua does NOT know how to use generics.
-
-            return value.name
-        end), function(value)
-            return not arrayContains(parts, value) and value:match('^' .. currentPart)
-        end)
     end,
-    call = function(parts)
-        local success, reason = storeStacks(storageInterface, { include = parts })
-
-        return success, reason and ('Failed to store items: %s'):format(reason) or 'Failed to store items'
-    end
 }
-commands['get'] = {
-    complete = function(parts)
-        if #parts == 1 then
-            return commands['list'].complete(parts)
-        elseif #parts == 2 then
-            local totalCount = 0
 
-            for _, value in ipairs(tableValues(getInternalStacks({ include = { parts[1] } }))) do
-                ---@cast value evelyn.program.storage.itemStack Wow, Lua does NOT know how to use generics.
-
-                totalCount = totalCount + value.count
-            end
-
-            ---@type string[]
-            local values = { tostring(totalCount) }
-
-            for i = 1, 12, 1 do
-                table.insert(values, tostring(2 ^ i))
-            end
-
-            return arrayFilter(values, function(value)
-                return value:match('^' .. parts[2])
-            end)
+---The insert command. Pushes stacks into internal storage.
+commands['insert'] = {
+    complete = function(cacheTable, previous, current)
+        if cacheTable['items'] == nil then
+            cacheTable['items'] = collectionHelper.table:values(externalInventory.list())
         end
 
-        return {}
+        if #previous == 0 then
+            if cacheTable['counts'] then
+                cacheTable['counts'] = nil
+            end
+
+            return collectionHelper.array:filter(cacheTable['items'], function(_, value)
+                return value.name:find(current, nil, true) ~= nil
+            end)
+        elseif #previous == 1 then
+            if cacheTable['counts'] == nil then
+                local itemIndex = collectionHelper.array:find(cacheTable['items'], previous[1])
+
+                if not itemIndex then
+                    cacheTable['counts'] = {}
+                else
+                    local count = cacheTable['items'][itemIndex].count
+
+                    cacheTable['counts'] = collectionHelper.array:compute(math.floor(math.sqrt(count)), function(index)
+                        return tostring(2 ^ index)
+                    end)
+                    cacheTable['counts'][#cacheTable['counts'] + 1] = tostring(count)
+                end
+            end
+
+            return collectionHelper.array:filter(cacheTable['counts'], function(_, value)
+                return value:find(current, nil, true) ~= nil
+            end)
+        else
+            return {}
+        end
     end,
-    call = function(parts)
-        local success, reason = retrieveStack(parts[1], tonumber(parts[2], 10))
+    callback = function(parameters)
+        ---@type evelyn.program.storage.fn.insert.options
+        local options = {}
 
-        return success, reason and ('Failed to retrieve items: %s'):format(reason) or 'Failed to retrieve items'
-    end
+        if parameters[1] then options.include = { parameters[1] } end
+        if parameters[2] then options.count = tonumber(parameters[2], 10) end
+
+        return inventory:insert(options)
+    end,
 }
+commands['i'] = commands['insert']
+
+---The remove command. Pushes stacks into external storage.
+commands['remove'] = {
+    complete = function(cacheTable, previous, current)
+        if #previous == 0 then
+            if cacheTable['counts'] then
+                cacheTable['counts'] = nil
+            end
+
+            return collectionHelper.array:filter(inventory:list(), function(_, value)
+                return value.name:find(current, nil, true) ~= nil
+            end)
+        elseif #previous == 1 then
+            if cacheTable['counts'] == nil then
+                local itemIndex = collectionHelper.array:find(inventory:list(), previous[1])
+
+                if not itemIndex then
+                    cacheTable['counts'] = {}
+                else
+                    local count = inventory:list()[itemIndex].count
+
+                    cacheTable['counts'] = collectionHelper.array:compute(math.floor(math.sqrt(count)), function(index)
+                        return tostring(2 ^ index)
+                    end)
+                    cacheTable['counts'][#cacheTable['counts'] + 1] = tostring(count)
+                end
+            end
+
+            return collectionHelper.array:filter(cacheTable['counts'], function(_, value)
+                return value:find(current, nil, true) ~= nil
+            end)
+        else
+            return {}
+        end
+    end,
+    callback = function(parameters)
+        ---@type evelyn.program.storage.fn.remove.options
+        local options = {}
+
+        if parameters[1] then options.include = { parameters[1] } end
+        if parameters[2] then options.count = tonumber(parameters[2], 10) end
+
+        return inventory:remove(options)
+    end,
+}
+commands['r'] = commands['remove']
+
+---The list command. Prints a list of stored items and their counts.
 commands['list'] = {
-    complete = function(parts)
-        local currentPart = table.remove(parts, #parts)
-
-        return arrayFilter(arrayMap(tableValues(getInternalStacks({ exclude = parts })), function(value)
-            ---@cast value evelyn.program.storage.itemStack Wow, Lua does NOT know how to use generics.
-
-            return value.name
-        end), function(value)
-            return not arrayContains(parts, value) and value:match('^' .. currentPart)
+    complete = function(_, previous, current)
+        return collectionHelper.array:filter(inventory:list(), function(_, value)
+            return collectionHelper.array:find(previous, value.name) == nil
+                and value.name:find(current, nil, true) ~= nil
         end)
     end,
-    call = function(parts)
-        local internalStacks = getInternalStacks({ include = parts })
+    callback = function(parameters)
+        local internalStacks = inventory:list({ include = parameters })
 
-        for _, stack in pairs(internalStacks) do
-            print(('x%s %s'):format(stack.count, stack.details.displayName))
+        table.sort(internalStacks, function(a, b) return a.count > b.count end)
+
+        for _, internalStack in ipairs(internalStacks) do
+            print(('x%s %s'):format(internalStack.count, internalStack.details().displayName))
         end
 
         return true, nil
-    end,
+    end
 }
-commands['listv'] = {
+commands['l'] = commands['list']
+
+commands['list-verbose'] = {
     complete = commands['list'].complete,
-    call = function(parts)
-        local internalStacks = getInternalStacks({ include = parts })
+    callback = function(parameters)
+        local internalStacks = inventory:list({ include = parameters })
 
-        for _, stack in pairs(internalStacks) do
-            print(('x%s %s (%s)'):format(stack.count, stack.details.displayName, stack.name))
+        table.sort(internalStacks, function(a, b) return a.count > b.count end)
 
-            if stack.details.damage and stack.details.maxDamage then
-                print(('Damage: %s/%s'):format(stack.details.damage, stack.details.maxDamage))
+        for _, internalStack in ipairs(internalStacks) do
+            print(('x%s %s (%s)'):format(internalStack.count, internalStack.details().displayName, internalStack.name))
+
+            if internalStack.details().damage and internalStack.details().maxDamage then
+                print(('Durability: %s / %s'):format(internalStack.details().damage, internalStack.details().maxDamage))
             end
-            if stack.details.enchantments and #stack.details.enchantments > 0 then
+            if internalStack.details().enchantments and #internalStack.details().enchantments > 0 then
                 print('Enchantments:')
 
-                for _, enchantment in ipairs(stack.details.enchantments) do
-                    print(('%s %s'):format(enchantment.name, enchantment.level))
+                for _, enchantment in ipairs(internalStack.details().enchantments) do
+                    print(('  %s %s'):format(enchantment.name, enchantment.level))
                 end
             end
-
-            print('Physical locations:')
-
-            for inventory, positions in pairs(stack.positions) do
-                print(inventory)
-
-                for _, position in ipairs(positions) do
-                    print(('#%s - x%s'):format(position.slot, position.count))
-                end
-            end
-
-            print()
         end
 
         return true, nil
-    end,
+    end
 }
+commands['lv'] = commands['list-verbose']
 
 while true do
     write('storage> ')
 
-    local input = read(nil, nil, function(partial)
+    local completionCache = {}
+    local commandInput = read(nil, nil, function(commandInput)
         ---@type string[]
-        local parts = {}
+        local commandParts = {}
 
-        for part in partial:gmatch('(%S+)') do
-            table.insert(parts, part)
+        for commandPart in commandInput:gmatch('(%S+)') do
+            commandParts[#commandParts + 1] = commandPart
         end
 
-        if #parts == 0 then
-            return tableKeys(commands)
-        elseif #parts == 1 then
-            local commandStart = parts[1]
+        if #commandParts == 1 then
+            completionCache = {}
 
-            return arrayMap(arrayFilter(tableKeys(commands), function(value)
-                ---@cast value string Wow, Lua does NOT know how to use generics.
+            local commandNames = collectionHelper.table:keys(commands)
 
-                return value:match('^' .. commandStart)
-            end), function(value)
-                ---@cast value string Wow, Lua does NOT know how to use generics.
+            return collectionHelper.array:map(collectionHelper.array:filter(commandNames, function(_, value)
+                return value:find(commandParts[1], nil, true) ~= nil
+            end), function(_, value)
+                local _, finish = value:find(commandParts[1], nil, true)
 
-                return value:match('^' .. commandStart .. '(.-)$')
+                return value:sub((finish or 0) + 1)
             end)
-        elseif commands[parts[1]] ~= nil then
-            return arrayMap(arrayDedupe(commands[table.remove(parts, 1)].complete(parts)), function(value)
-                return value:match('^' .. parts[#parts] .. '(.-)$')
-            end)
+        elseif #commandParts > 1 and commands[commandParts[1]] ~= nil then
+            local command = commands[table.remove(commandParts, 1)]
+            local current = table.remove(commandParts, #commandParts)
+
+            return collectionHelper.array:map(
+                command.complete(completionCache, commandParts, current),
+                function(_, value)
+                    local _, finish = value:find(current, nil, true)
+
+                    return value:sub((finish or 0) + 1)
+                end
+            )
         end
 
         return {}
     end)
 
     ---@type string[]
-    local parts = {}
+    local commandParts = {}
 
-    for part in input:gmatch('(%S+)') do
-        table.insert(parts, part)
+    for commandPart in commandInput:gmatch('(%S+)') do
+        commandParts[#commandParts + 1] = commandPart
     end
 
-    if #parts == 0 then goto continue end
+    if #commandParts == 0 then goto continue end
+    if commandParts[1] == 'exit' then break end
 
-    if parts[1] == 'exit' then break end
-
-    if not commands[parts[1]] then
-        printError('Unknown command:', parts[1])
+    if commands[commandParts[1]] == nil then
+        printError(('Unknown command "%s"'):format(commandParts[1]))
 
         goto continue
     end
 
-    local success, reason = commands[table.remove(parts, 1)].call(parts)
+    local command = commands[table.remove(commandParts, 1)]
+    local success, reason = command.callback(commandParts)
 
-    if not success then
-        printError('Command failed:', reason)
-    end
+    if not success then printError(('Error: %s'):format(reason)) end
 
     ::continue::
 end
