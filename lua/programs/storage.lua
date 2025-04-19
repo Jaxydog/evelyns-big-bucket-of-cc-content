@@ -263,7 +263,9 @@ function inventory:remove(options)
     local movedCounts = {}
 
     for _, internalStack in ipairs(internalStacks) do
-        local maxCount = options.count ~= nil and options.count or internalStack.details().maxCount
+        local maxCount = options.count ~= nil
+            and options.count
+            or math.min(internalStack.details().maxCount, internalStack.count)
 
         for _, internalPosition in ipairs(internalStack.positions) do
             local movedCount = movedCounts[internalStack.name] or 0
@@ -332,9 +334,9 @@ commands['insert'] = {
                 cacheTable['counts'] = nil
             end
 
-            return collectionHelper.array:filter(cacheTable['items'], function(_, value)
+            return collectionHelper.array:map(collectionHelper.array:filter(cacheTable['items'], function(_, value)
                 return value.name:find('^' .. current, nil, false) ~= nil
-            end)
+            end), function(_, value) return value.name end)
         elseif #previous == 1 then
             if cacheTable['counts'] == nil then
                 local itemIndex = collectionHelper.array:find(cacheTable['items'], previous[1])
@@ -378,9 +380,9 @@ commands['remove'] = {
                 cacheTable['counts'] = nil
             end
 
-            return collectionHelper.array:filter(inventory:list(), function(_, value)
+            return collectionHelper.array:map(collectionHelper.array:filter(inventory:list(), function(_, value)
                 return value.name:find('^' .. current, nil, false) ~= nil
-            end)
+            end), function(_, value) return value.name end)
         elseif #previous == 1 then
             if cacheTable['counts'] == nil then
                 local itemIndex = collectionHelper.array:find(inventory:list(), previous[1])
@@ -419,10 +421,10 @@ commands['r'] = commands['remove']
 ---The list command. Prints a list of stored items and their counts.
 commands['list'] = {
     complete = function(_, previous, current)
-        return collectionHelper.array:filter(inventory:list(), function(_, value)
+        return collectionHelper.array:map(collectionHelper.array:filter(inventory:list(), function(_, value)
             return collectionHelper.array:find(previous, value.name) == nil
                 and value.name:find('^' .. current, nil, false) ~= nil
-        end)
+        end), function(_, value) return value.name end)
     end,
     callback = function(parameters)
         local internalStacks = inventory:list({ include = parameters })
