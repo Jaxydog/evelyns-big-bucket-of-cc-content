@@ -97,6 +97,25 @@ function module.array:map(array, mapper)
     return mapped
 end
 
+---Returns a new array that contains the contents of all inner arrays within a single list.
+---
+---@generic T The type stored within the array.
+---
+---@param array T[][] The array.
+---
+---@return T[] array A new array.
+function module.array:flatten(array)
+    local flattened = {}
+
+    for _, innerArray in ipairs(array) do
+        for _, value in ipairs(innerArray) do
+            flattened[#flattened + 1] = value
+        end
+    end
+
+    return flattened
+end
+
 ---Applies the given folding function to the provided array.
 ---
 ---@generic T The type stored within the array.
@@ -273,6 +292,31 @@ function module.table:mapValues(table, mapper)
     end
 
     return mapped
+end
+
+---Returns a new table that contains the contents of all inner tables.
+---
+---@generic K The type of the keys within the table.
+---@generic V The type of the values within the table.
+---
+---@param table table<K, table<K, V>> The table.
+---@param onDuplicate fun(key: K, first: V, second: V): V A function that returns the preferred value if a duplicate is found.
+---
+---@return table<K, V> table A new table.
+function module.table:flatten(table, onDuplicate)
+    local flattened = {}
+
+    for _, innerTable in pairs(table) do
+        for key, value in pairs(innerTable) do
+            if flattened[key] ~= nil then
+                value = onDuplicate(key, flattened[key], value)
+            end
+
+            flattened[key] = value
+        end
+    end
+
+    return flattened
 end
 
 ---Applies the given folding function to the provided table.
