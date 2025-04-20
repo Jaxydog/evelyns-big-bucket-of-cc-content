@@ -58,6 +58,28 @@ function module.array:findWith(array, predicate)
     end
 end
 
+---Returns a new array where every value has been de-duplicated.
+---
+---@generic T The type stored within the array.
+---
+---@param array T[] The array.
+---@param compare? fun(a: T, b: T): boolean A function that returns whether two elements should be considered equal.
+---
+---@return T[] array A new array.
+function module.array:deduplicate(array, compare)
+    compare = compare or function(a, b) return a == b end
+
+    local deduplicated = {}
+
+    for _, value in ipairs(array) do
+        if self:findWith(deduplicated, function(_, innerValue) return compare(value, innerValue) end) == nil then
+            deduplicated[#deduplicated + 1] = value
+        end
+    end
+
+    return deduplicated
+end
+
 ---Returns a new array where every value has been filtered using the given predicate.
 ---
 ---@generic T The type stored within the array.
