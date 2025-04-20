@@ -472,7 +472,9 @@ commands['list-verbose'] = {
             print(('x%s %s (%s)'):format(internalStack.count, internalStack.details().displayName, internalStack.name))
 
             if internalStack.details().damage and internalStack.details().maxDamage then
-                print(('Durability: %s / %s'):format(internalStack.details().damage, internalStack.details().maxDamage))
+                local currentDurability = internalStack.details().maxDamage - internalStack.details().damage
+
+                print(('Durability: %s / %s'):format(currentDurability, internalStack.details().maxDamage))
             end
             if internalStack.details().enchantments and #internalStack.details().enchantments > 0 then
                 print('Enchantments:')
