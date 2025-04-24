@@ -1,6 +1,6 @@
 ---Provides convenience methods for arrays.
 ---
----@class evelyn.os.library.arrays.Lib
+---@class evelyn.library.common.arrays.Lib
 local module = {}
 
 ---Creates a new array containing `length` values returned by the callback.

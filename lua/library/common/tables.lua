@@ -1,6 +1,6 @@
 ---Provides convenience methods for tables.
 ---
----@class evelyn.os.library.tables.Lib
+---@class evelyn.library.common.tables.Lib
 local module = {}
 
 ---Returns a new array containing the table's keys in an arbitrary order.
